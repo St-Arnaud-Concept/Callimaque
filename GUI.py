@@ -23,6 +23,9 @@ class MagnifyingGlass(tk.Toplevel):
         self.withdraw()
         
     def update_magnifier(self, event):
+        if not self.image_data or not self.image_data.get('image'):
+            return
+
         x, y = event.x, event.y
         img_x, img_y = self.image_data['label'].winfo_rootx(), self.image_data['label'].winfo_rooty()
         
@@ -218,6 +221,9 @@ class CallimaqueApp:
             self.show_image()
     
     def show_magnifier(self, event):
+        if not self.image_data or not self.image_data.get('image'):
+            return
+
         # Hide the cursor
         self.root.config(cursor='none')
         
