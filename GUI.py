@@ -52,7 +52,7 @@ class MagnifyingGlass(tk.Toplevel):
             rel_x + self.radius // self.zoom_factor,
             rel_y + self.radius // self.zoom_factor
         ))
-        magnified_region = magnified_region.resize((2*self.radius, 2*self.radius), Image.ANTIALIAS)
+        magnified_region = magnified_region.resize((2*self.radius, 2*self.radius), Image.LANCZOS)
         self.magnified_image = ImageTk.PhotoImage(magnified_region)
         self.canvas.create_image(self.radius, self.radius, image=self.magnified_image)
         
@@ -180,13 +180,14 @@ class CallimaqueApp:
         
         # Resize image while preserving aspect ratio
         width, height = self.image_data['image'].size
+        display_image = self.image_data['image']
         if width > max_width or height > max_height:
             ratio = min(max_width / width, max_height / height)
             width = int(width * ratio)
             height = int(height * ratio)
-            self.image_data['image'] = self.image_data['image'].resize((width, height), Image.ANTIALIAS)
+            display_image = self.image_data['image'].resize((width, height), Image.LANCZOS)
         
-        self.image_data['photo'] = ImageTk.PhotoImage(self.image_data['image'])
+        self.image_data['photo'] = ImageTk.PhotoImage(display_image)
         self.image_data['label'].configure(image=self.image_data['photo'])
         self.image_data['label'].image = self.image_data['photo']
         self.root.title(f"Callimaque - {os.path.basename(image_path)}")
