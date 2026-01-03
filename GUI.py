@@ -175,17 +175,18 @@ class CallimaqueApp:
         #each time you press < to show previous image or > to show the next the image gets bigger and bigger 
       
         # Calculate maximum display dimensions
-        max_width = self.top_frame.winfo_width() - 20  # Adjust for padding
-        max_height = self.top_frame.winfo_height() - 150  # Adjust for other widgets
+        max_width = max(1, self.top_frame.winfo_width() - 20)  # Adjust for padding, ensure > 0
+        max_height = max(1, self.top_frame.winfo_height() - 150)  # Adjust for other widgets, ensure > 0
         
         # Resize image while preserving aspect ratio
         width, height = self.image_data['image'].size
         display_image = self.image_data['image']
+        
         if width > max_width or height > max_height:
             ratio = min(max_width / width, max_height / height)
-            width = int(width * ratio)
-            height = int(height * ratio)
-            display_image = self.image_data['image'].resize((width, height), Image.LANCZOS)
+            new_width = max(1, int(width * ratio))
+            new_height = max(1, int(height * ratio))
+            display_image = self.image_data['image'].resize((new_width, new_height), Image.LANCZOS)
         
         self.image_data['photo'] = ImageTk.PhotoImage(display_image)
         self.image_data['label'].configure(image=self.image_data['photo'])
