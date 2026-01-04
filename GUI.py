@@ -7,7 +7,7 @@ import pytesseract
 from ai_manager import AIManager
 
 # Set the appearance mode and color theme
-ctk.set_appearance_mode("System")
+ctk.set_appearance_mode("Dark")
 ctk.set_default_color_theme("blue")
 
 
@@ -72,202 +72,169 @@ class CallimaqueApp:
         self.file_path = tk.StringVar()
         self.current_directory = tk.StringVar()
         
-        # --- Menu Bar ---
-        self.menu_bar = tk.Menu(self.root)
-        self.root.config(menu=self.menu_bar)
-        
-        self.file_menu = tk.Menu(self.menu_bar, tearoff=0)
-        self.menu_bar.add_cascade(label="File", menu=self.file_menu)
-        self.file_menu.add_command(label="Open Text File...", command=self.open_text_file)
-        self.file_menu.add_command(label="Save", command=self.save_file)
-        self.file_menu.add_command(label="Save As...", command=self.save_as_file)
-        self.file_menu.add_separator()
-        self.file_menu.add_command(label="Preferences", command=self.open_preferences)
-        self.file_menu.add_separator()
-        self.file_menu.add_command(label="Exit", command=self.root.quit)
-
         # --- Main Layout Configuration ---
-        # Column 0: Text Editor (Left) - Flexible
-        # Column 1: Controls (Right) - Fixed/Standard width
-        self.root.grid_columnconfigure(0, weight=1) 
-        self.root.grid_columnconfigure(1, weight=0)
-        self.root.grid_rowconfigure(0, weight=1)
+        self.root.grid_columnconfigure(0, weight=2) # 2/3 for Text
+        self.root.grid_columnconfigure(1, weight=1) # 1/3 for Controls
+        self.root.grid_rowconfigure(0, weight=0)    # Menu row
+        self.root.grid_rowconfigure(1, weight=1)    # Main content row
 
-        # --- Left Frame (Text Editor) ---
-        self.left_frame = ctk.CTkFrame(self.root)
-        self.left_frame.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
+        # --- Sexy Modern Menu Bar ---
+        self.menu_frame = ctk.CTkFrame(self.root, height=40, corner_radius=0, fg_color="#1A1A1A")
+        self.menu_frame.grid(row=0, column=0, columnspan=2, sticky="ew")
         
-        self.text_editor = ctk.CTkTextbox(self.left_frame, wrap=tk.WORD)
-        self.text_editor.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        # File Button with Dropdown logic
+        self.file_button = ctk.CTkButton(
+            self.menu_frame, 
+            text="File", 
+            width=60, 
+            height=30, 
+            fg_color="transparent", 
+            hover_color="#333333",
+            command=self.show_file_menu
+        )
+        self.file_button.pack(side=tk.LEFT, padx=(10, 2))
+        
+        self.save_button = ctk.CTkButton(
+            self.menu_frame, 
+            text="Quick Save", 
+            width=90, 
+            height=30, 
+            fg_color="transparent", 
+            hover_color="#333333",
+            command=self.save_file
+        )
+        self.save_button.pack(side=tk.LEFT, padx=2)
+
+        self.pref_button = ctk.CTkButton(
+            self.menu_frame, 
+            text="Preferences", 
+            width=90, 
+            height=30, 
+            fg_color="transparent", 
+            hover_color="#333333",
+            command=self.open_preferences
+        )
+        self.pref_button.pack(side=tk.LEFT, padx=2)
+
+        # --- Left Frame (Text Editor - 2/3 space) ---
+        self.left_frame = ctk.CTkFrame(self.root)
+        self.left_frame.grid(row=1, column=0, sticky="nsew", padx=10, pady=10)
+        
+        self.text_editor = ctk.CTkTextbox(self.left_frame, wrap=tk.WORD, font=("Consolas", 12))
+        self.text_editor.pack(fill=tk.BOTH, expand=True, padx=15, pady=15)
         self.text_editor.bind("<Control-a>", self.select_all)
         self.text_editor.bind("<Control-A>", self.select_all)
 
-        # --- Right Frame (Controls) ---
-        self.right_frame = ctk.CTkFrame(self.root, width=500) # Set a default width preference
-        self.right_frame.grid(row=0, column=1, sticky="nsew", padx=(0, 10), pady=10)
-        # Prevent right frame from shrinking too much
-        self.right_frame.grid_propagate(True)
+        # --- Right Frame (Controls - 1/3 space) ---
+        self.right_frame = ctk.CTkFrame(self.root) 
+        self.right_frame.grid(row=1, column=1, sticky="nsew", padx=(0, 10), pady=10)
 
         # 1. Directory Section
         self.dir_container = ctk.CTkFrame(self.right_frame, fg_color="transparent")
-        self.dir_container.pack(side=tk.TOP, fill=tk.X, padx=10, pady=(10, 5))
+        self.dir_container.pack(side=tk.TOP, fill=tk.X, padx=15, pady=(20, 10))
         
-        ctk.CTkLabel(self.dir_container, text="Directory:").pack(anchor="w", padx=5)
+        ctk.CTkLabel(self.dir_container, text="DIRECTORY", font=("Roboto", 11, "bold"), text_color="gray").pack(anchor="w", padx=5)
         
         self.dir_input_frame = ctk.CTkFrame(self.dir_container, fg_color="transparent")
-        self.dir_input_frame.pack(fill=tk.X, pady=2)
+        self.dir_input_frame.pack(fill=tk.X, pady=5)
         
-        self.directory_entry = ctk.CTkEntry(self.dir_input_frame, textvariable=self.current_directory)
+        self.directory_entry = ctk.CTkEntry(self.dir_input_frame, textvariable=self.current_directory, height=35)
         self.directory_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(5, 5))
         
-        self.browse_button = ctk.CTkButton(self.dir_input_frame, text="Browse", width=60, command=self.browse_directory)
+        self.browse_button = ctk.CTkButton(self.dir_input_frame, text="Browse", width=70, height=35, command=self.browse_directory)
         self.browse_button.pack(side=tk.LEFT, padx=5)
 
         # 2. Image Section
-        self.image_data = {'label': ctk.CTkLabel(self.right_frame, text="No Image Loaded"), 'image': None, 'photo': None}
-        self.image_data['label'].pack(side=tk.TOP, fill=tk.BOTH, expand=True, padx=10, pady=10)
+        # We wrap the image in a frame to keep it centered
+        self.image_container = ctk.CTkFrame(self.right_frame, fg_color="#252525", corner_radius=10)
+        self.image_container.pack(side=tk.TOP, fill=tk.BOTH, expand=True, padx=15, pady=10)
+
+        self.image_data = {'label': ctk.CTkLabel(self.image_container, text="Drop Image Folder Here"), 'image': None, 'photo': None}
+        self.image_data['label'].pack(fill=tk.BOTH, expand=True)
         self.image_data['label'].bind("<Enter>", self.show_magnifier)
         self.image_data['label'].bind("<Leave>", self.hide_magnifier)
         self.image_data['label'].bind("<Motion>", self.move_magnifier)
 
         # 3. Navigation Section
         self.nav_container = ctk.CTkFrame(self.right_frame, fg_color="transparent")
-        self.nav_container.pack(side=tk.TOP, pady=5)
+        self.nav_container.pack(side=tk.TOP, pady=10)
 
-        self.left_button = ctk.CTkButton(self.nav_container, text="<", command=self.show_previous_image, width=40)
-        self.left_button.pack(side=tk.LEFT, padx=20)
+        self.left_button = ctk.CTkButton(self.nav_container, text="<", command=self.show_previous_image, width=50, height=35, fg_color="#333333", hover_color="#444444")
+        self.left_button.pack(side=tk.LEFT, padx=15)
         
-        self.right_button = ctk.CTkButton(self.nav_container, text=">", command=self.show_next_image, width=40)
-        self.right_button.pack(side=tk.LEFT, padx=20)
+        self.right_button = ctk.CTkButton(self.nav_container, text=">", command=self.show_next_image, width=50, height=35, fg_color="#333333", hover_color="#444444")
+        self.right_button.pack(side=tk.LEFT, padx=15)
 
         # 4. AI Split Button Section
         self.ai_container = ctk.CTkFrame(self.right_frame, fg_color="transparent")
-        self.ai_container.pack(side=tk.TOP, pady=15)
+        self.ai_container.pack(side=tk.TOP, pady=20)
         
         self.pill_color = "#D35400"
         self.hover_color = "#BA4A00"
-        
-        # Get parent background color
         parent_bg = self.right_frame.cget("fg_color")
         
-        self.ai_pill_frame = ctk.CTkFrame(
-            self.ai_container, 
-            fg_color=self.pill_color, 
-            corner_radius=25, 
-            bg_color=parent_bg,
-            border_width=0
-        )
+        self.ai_pill_frame = ctk.CTkFrame(self.ai_container, fg_color=self.pill_color, corner_radius=25, bg_color=parent_bg, border_width=0)
         self.ai_pill_frame.pack(side=tk.TOP)
 
-        # AI Button Click Area
-        self.ai_main_click_area = ctk.CTkFrame(
-            self.ai_pill_frame,
-            fg_color=self.pill_color, 
-            corner_radius=16,
-            width=140, 
-            height=32,
-            bg_color=self.pill_color 
-        )
+        self.ai_main_click_area = ctk.CTkFrame(self.ai_pill_frame, fg_color=self.pill_color, corner_radius=16, width=150, height=40, bg_color=self.pill_color)
         self.ai_main_click_area.pack(side=tk.LEFT, padx=(15, 0), pady=4)
         
-        # Label 1: "Ai Correction"
-        self.ai_title_label = ctk.CTkLabel(
-            self.ai_main_click_area,
-            text="Ai Correction",
-            font=("Roboto", 13, "bold"),
-            text_color="white",
-            fg_color="transparent"
-        )
-        self.ai_title_label.pack(side=tk.TOP, pady=0) 
+        self.ai_title_label = ctk.CTkLabel(self.ai_main_click_area, text="Ai Correction", font=("Roboto", 13, "bold"), text_color="white", fg_color="transparent")
+        self.ai_title_label.pack(side=tk.TOP, pady=0)
 
-        # Label 2: Selected Model
-        self.ai_subtitle_label = ctk.CTkLabel(
-            self.ai_main_click_area,
-            text=self.ai_manager.current_model_name,
-            font=("Roboto", 10),
-            text_color="#E0E0E0", 
-            fg_color="transparent"
-        )
+        self.ai_subtitle_label = ctk.CTkLabel(self.ai_main_click_area, text=self.ai_manager.current_model_name, font=("Roboto", 10), text_color="#E0E0E0", fg_color="transparent")
         self.ai_subtitle_label.pack(side=tk.TOP, pady=0)
 
-        # Bind events
         for widget in [self.ai_main_click_area, self.ai_title_label, self.ai_subtitle_label]:
             widget.bind("<Button-1>", lambda e: self.perform_ai_correction())
             widget.bind("<Enter>", self.on_ai_hover_enter)
             widget.bind("<Leave>", self.on_ai_hover_leave)
 
-        # AI Separator
-        self.ai_separator = ctk.CTkFrame(self.ai_pill_frame, width=1, height=18, fg_color="#E59866", bg_color=self.pill_color) 
-        self.ai_separator.pack(side=tk.LEFT, padx=5, pady=6)
+        self.ai_separator = ctk.CTkFrame(self.ai_pill_frame, width=1, height=20, fg_color="#E59866", bg_color=self.pill_color) 
+        self.ai_separator.pack(side=tk.LEFT, padx=5, pady=8)
         
-        # AI Menu Button
-        self.ai_btn_menu = ctk.CTkButton(
-            self.ai_pill_frame, 
-            text=">", 
-            fg_color="transparent", 
-            hover_color=self.hover_color,
-            width=32,
-            height=32,
-            corner_radius=16,
-            bg_color=self.pill_color, 
-            border_width=0,
-            command=self.toggle_ai_menu
-        )
+        self.ai_btn_menu = ctk.CTkButton(self.ai_pill_frame, text=">", fg_color="transparent", hover_color=self.hover_color, width=35, height=40, corner_radius=16, bg_color=self.pill_color, border_width=0, command=self.toggle_ai_menu)
         self.ai_btn_menu.pack(side=tk.LEFT, padx=(0, 15), pady=4)
 
         # AI Settings Panel (Hidden)
         self.ai_settings_panel = ctk.CTkFrame(self.right_frame, fg_color="#2B2B2B", corner_radius=15, border_width=1, border_color="#404040")
         
-        self.ai_model_var = tk.StringVar(value=self.ai_manager.current_model_name)
-        
-        ctk.CTkLabel(self.ai_settings_panel, text="AI Models", font=("Roboto", 14, "bold"), text_color="white").pack(anchor="w", padx=20, pady=(15, 10))
-        
-        self.models_frame = ctk.CTkFrame(self.ai_settings_panel, fg_color="transparent")
-        self.models_frame.pack(fill="x", padx=10)
-        
-        for model in self.ai_manager.get_available_models():
-            rb = ctk.CTkRadioButton(
-                self.models_frame, 
-                text=model, 
-                variable=self.ai_model_var, 
-                value=model,
-                command=self.on_model_select,
-                text_color="#DDDDDD",
-                hover_color="#D35400",
-                fg_color="#D35400"
-            )
-            rb.pack(anchor="w", padx=10, pady=5)
-            
-        ctk.CTkLabel(self.ai_settings_panel, text="API Key:", text_color="gray").pack(anchor="w", padx=20, pady=(10, 0))
-        self.api_key_entry = ctk.CTkEntry(self.ai_settings_panel, width=250, show="*")
-        self.api_key_entry.pack(fill="x", padx=20, pady=(5, 15))
-        self.api_key_entry.bind("<KeyRelease>", self.save_api_key)
-        
-        current_key = self.ai_manager.api_keys.get(self.ai_manager.current_model_name, "")
-        self.api_key_entry.insert(0, current_key)
-
-
-        # 5. Append/Destination Section (Bottom of Right Frame)
+        # 5. Append/Destination Section
         self.bottom_container = ctk.CTkFrame(self.right_frame, fg_color="transparent")
-        self.bottom_container.pack(side=tk.BOTTOM, fill=tk.X, padx=10, pady=20)
+        self.bottom_container.pack(side=tk.BOTTOM, fill=tk.X, padx=15, pady=30)
 
-        ctk.CTkLabel(self.bottom_container, text="Destination File:").pack(anchor="w", padx=5)
+        ctk.CTkLabel(self.bottom_container, text="DESTINATION FILE", font=("Roboto", 11, "bold"), text_color="gray").pack(anchor="w", padx=5)
 
         self.dest_input_frame = ctk.CTkFrame(self.bottom_container, fg_color="transparent")
-        self.dest_input_frame.pack(fill=tk.X, pady=2)
+        self.dest_input_frame.pack(fill=tk.X, pady=5)
 
-        self.destination_entry = ctk.CTkEntry(self.dest_input_frame, textvariable=self.file_path)
+        self.destination_entry = ctk.CTkEntry(self.dest_input_frame, textvariable=self.file_path, height=35)
         self.destination_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(5, 5))
 
-        self.destination_button = ctk.CTkButton(self.dest_input_frame, text="Browse", width=60, command=self.browse_destination_file)
+        self.destination_button = ctk.CTkButton(self.dest_input_frame, text="Browse", width=70, height=35, command=self.browse_destination_file)
         self.destination_button.pack(side=tk.LEFT, padx=5)
         
-        self.button_append = ctk.CTkButton(self.bottom_container, text="Append Text", command=self.append_text)
-        self.button_append.pack(side=tk.TOP, fill=tk.X, padx=5, pady=10)
+        self.button_append = ctk.CTkButton(self.bottom_container, text="APPEND TO FILE", font=("Roboto", 12, "bold"), height=40, fg_color="#2E7D32", hover_color="#1B5E20", command=self.append_text)
+        self.button_append.pack(side=tk.TOP, fill=tk.X, padx=5, pady=15)
 
         self.magnifier = None
 
     # --- Menu Functions ---
+    def show_file_menu(self):
+        # Create a modern context menu using tk.Menu but triggered by the CTkButton
+        # Note: tk.Menu styling is OS-dependent, but we can try to trigger actions
+        m = tk.Menu(self.root, tearoff=0)
+        m.add_command(label="Open Text File...", command=self.open_text_file)
+        m.add_command(label="Save", command=self.save_file)
+        m.add_command(label="Save As...", command=self.save_as_file)
+        m.add_separator()
+        m.add_command(label="Exit", command=self.root.quit)
+        
+        # Display menu below the button
+        x = self.file_button.winfo_rootx()
+        y = self.file_button.winfo_rooty() + self.file_button.winfo_height()
+        m.tk_popup(x, y)
+
     def open_text_file(self):
         file_path = filedialog.askopenfilename(defaultextension=".txt", filetypes=[("Text files", "*.txt"), ("All files", "*.*")])
         if file_path:
@@ -280,8 +247,6 @@ class CallimaqueApp:
                 messagebox.showerror("Error", f"Failed to open file: {e}")
 
     def save_file(self):
-        # Implementation depends on whether we have an "opened" text file or just appending
-        # For this logic, we'll save the editor content to a new file if not specified
         file_path = filedialog.asksaveasfilename(defaultextension=".txt", filetypes=[("Text files", "*.txt")])
         if file_path:
              try:
@@ -310,10 +275,29 @@ class CallimaqueApp:
             self.ai_settings_panel.pack_forget()
         else:
             self.ai_settings_panel.pack(after=self.ai_container, pady=5, padx=10, fill='x')
+            # Build panel content if first time
+            if not hasattr(self, 'ai_panel_built'):
+                self.build_ai_panel()
+                self.ai_panel_built = True
+
+    def build_ai_panel(self):
+        self.ai_model_var = tk.StringVar(value=self.ai_manager.current_model_name)
+        ctk.CTkLabel(self.ai_settings_panel, text="SELECT MODEL", font=("Roboto", 11, "bold"), text_color="gray").pack(anchor="w", padx=20, pady=(15, 5))
+        
+        self.models_frame = ctk.CTkFrame(self.ai_settings_panel, fg_color="transparent")
+        self.models_frame.pack(fill="x", padx=10)
+        
+        for model in self.ai_manager.get_available_models():
+            rb = ctk.CTkRadioButton(self.models_frame, text=model, variable=self.ai_model_var, value=model, command=self.on_model_select, text_color="#DDDDDD", hover_color="#D35400", fg_color="#D35400")
+            rb.pack(anchor="w", padx=15, pady=5)
             
-            self.api_key_entry.delete(0, tk.END)
-            key = self.ai_manager.api_keys.get(self.ai_manager.current_model_name, "")
-            self.api_key_entry.insert(0, key)
+        ctk.CTkLabel(self.ai_settings_panel, text="API KEY", font=("Roboto", 11, "bold"), text_color="gray").pack(anchor="w", padx=20, pady=(10, 5))
+        self.api_key_entry = ctk.CTkEntry(self.ai_settings_panel, width=250, show="*", height=30)
+        self.api_key_entry.pack(fill="x", padx=20, pady=(0, 20))
+        self.api_key_entry.bind("<KeyRelease>", self.save_api_key)
+        
+        current_key = self.ai_manager.api_keys.get(self.ai_manager.current_model_name, "")
+        self.api_key_entry.insert(0, current_key)
 
     def on_model_select(self):
         new_model = self.ai_model_var.get()
@@ -365,7 +349,6 @@ class CallimaqueApp:
             for filename in os.listdir(directory):
                 if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
                     self.image_files.append(os.path.join(directory, filename))
-            print(f"Loaded {len(self.image_files)} images.")
         except Exception as e:
             print(f"Error loading images: {e}")
 
@@ -377,11 +360,9 @@ class CallimaqueApp:
         image_path = self.image_files[self.current_image_index]
         self.image_data['image'] = Image.open(image_path)
         
-        # Adjust sizing calculations for right frame width
-        max_width = max(1, self.right_frame.winfo_width() - 20)
-        if max_width < 100: max_width = 400 # Default fallback if not drawn yet
-        
-        max_height = 400 # Fixed height max for image in control panel to avoid pushing everything off
+        max_width = max(1, self.right_frame.winfo_width() - 40)
+        if max_width < 100: max_width = 400 
+        max_height = 400 
         
         width, height = self.image_data['image'].size
         new_width, new_height = width, height
@@ -391,10 +372,7 @@ class CallimaqueApp:
             new_width = max(1, int(width * ratio))
             new_height = max(1, int(height * ratio))
         
-        self.image_data['photo'] = ctk.CTkImage(light_image=self.image_data['image'], 
-                                              dark_image=self.image_data['image'],
-                                              size=(new_width, new_height))
-        
+        self.image_data['photo'] = ctk.CTkImage(light_image=self.image_data['image'], dark_image=self.image_data['image'], size=(new_width, new_height))
         self.image_data['label'].configure(image=self.image_data['photo'], text="")
         self.root.title(f"Callimaque - {os.path.basename(image_path)}")
         
@@ -406,7 +384,6 @@ class CallimaqueApp:
         try:
             return pytesseract.image_to_string(Image.open(image_path))
         except Exception as e:
-            print(f"Error: {e}")
             return ""
     
     def show_previous_image(self):
